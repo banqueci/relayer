@@ -1,8 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/flowshield/flowshield/fullnode/pkg/contract"
+	"github.com/flowshield/flowshield/fullnode/pkg/logger"
 	"log"
 	"time"
 
@@ -17,6 +25,19 @@ type Relay struct {
 
 	storage *postgresql.PostgresBackend
 }
+
+type FlowShield struct {
+	Client   *ethclient.Client
+	Instance *contract.Slit
+	Auth     *bind.TransactOpts
+}
+var CS *FlowShield
+const (
+	FullNode = 1
+
+	Provider = 2
+)
+
 
 func (r *Relay) Name() string {
 	return "BasicRelay"
@@ -70,6 +91,14 @@ func (r *Relay) AfterSave(evt *nostr.Event) {
 }
 
 func main() {
+	//todo 先进行质押注册
+	err := InitETH()
+	if err != nil {
+		log.Fatalf("init eth error: %v", err)
+		return
+	}
+
+	//原代码
 	r := Relay{}
 	if err := envconfig.Process("", &r); err != nil {
 		log.Fatalf("failed to read from env: %v", err)
@@ -79,4 +108,72 @@ func main() {
 	if err := relayer.Start(&r); err != nil {
 		log.Fatalf("server terminated: %v", err)
 	}
+}
+
+func InitETH() error{
+	ctx := context.Background()
+	//var cfg *confer.Web3
+	//
+	//url := cfg.ETH.URL
+	//token := cfg.Contract.Token
+	//private := cfg.PrivateKey
+
+	url := "https://weechain1.gw106.oneitfarm.com"
+	token := "0x056B1B1315304D069D54A4bEAD6eF6E39C7E55fb"
+	private := "7259120a1e1f0471d511a14fdb5c619239b267645a356a354e21732a424cc778"
+
+	client, err := ethclient.Dial(url)
+	if err != nil {
+		return err
+	}
+	chanID, err := client.ChainID(ctx)
+	if err != nil {
+		return err
+	}
+	contractAdd := common.HexToAddress(token)
+	instance, err := contract.NewSlit(contractAdd, client)
+	if err != nil {
+		return err
+	}
+	privateKey, err := crypto.HexToECDSA(private)
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chanID)
+	CS = &FlowShield{
+		Client:   client,
+		Instance: instance,
+		Auth:     auth,
+	}
+	err = CS.stack(ctx)
+	if err != nil {
+		return err
+	}
+	return CS.stack(ctx)
+}
+
+func (c *FlowShield) stack(ctx context.Context) error {
+	logger.Infof("checking if stacked or not...")
+	isDeposit, err := c.Instance.IsDeposit(&bind.CallOpts{
+		From: c.Auth.From,
+	}, FullNode)
+	if err != nil {
+		return err
+	}
+	if isDeposit {
+		logger.Infof("you have stacked!")
+		return nil
+	}
+	logger.Infof("you have not stacked! trying to stack...")
+	// 尝试质押
+	tra, err := c.Instance.Stake(c.Auth, FullNode)
+	if err != nil {
+		return err
+	}
+	rec, err := bind.WaitMined(ctx, c.Client, tra)
+	if err != nil {
+		return err
+	}
+	if rec.Status > 0 {
+		logger.Infof("stack succeed !")
+		return nil
+	}
+	return errors.New("sorry,stacked failed")
 }
