@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/flowshield/flowshield/fullnode/pkg/confer"
 	"github.com/flowshield/flowshield/fullnode/pkg/contract"
 	"github.com/flowshield/flowshield/fullnode/pkg/logger"
 	"log"
@@ -92,6 +93,12 @@ func (r *Relay) AfterSave(evt *nostr.Event) {
 
 func main() {
 	//todo 先进行质押注册
+	logger.Init(&logger.Config{
+		Level:       logger.LogLevel(),
+		Filename:    logger.LogFile(),
+		SendToFile:  logger.SendLogToFile(),
+		Development: confer.ConfigEnvIsDev(),
+	})
 	err := InitETH()
 	if err != nil {
 		log.Fatalf("init eth error: %v", err)
@@ -172,7 +179,7 @@ func (c *FlowShield) stack(ctx context.Context) error {
 		return err
 	}
 	if rec.Status > 0 {
-		logger.Infof("stack succeed !")
+		logger.Infof("===================stack succeed !=======================")
 		return nil
 	}
 	return errors.New("sorry,stacked failed")
