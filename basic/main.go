@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/fiatjaf/relayer/weelink"
 	"log"
+	"math/rand"
 	"time"
 
 	"github.com/fiatjaf/relayer"
@@ -31,6 +32,11 @@ type ImDao struct {
 	Auth     *bind.TransactOpts
 }
 var IM *ImDao
+type Node struct {
+	Protocol 	string
+	Domain 		string
+	Port 		int
+}
 
 
 func (r *Relay) Name() string {
@@ -142,8 +148,17 @@ func InitETH() error{
 
 func (im *ImDao) stack(ctx context.Context) error {
 	log.Println("checking if stacked or not...")
+
+	node := &Node{
+		Protocol: "ws",
+		Domain: "110.41.16.146",
+		Port: 2700,
+	}
+	nodeStr, _ := json.Marshal(node)
+	nodeId := RandStr(32)
+
 	// 尝试质押
-	tra, err := im.Instance.Stake(im.Auth, "relayer1", "{'ip':'110.41.16.146','port':'22'}")
+	tra, err := im.Instance.Stake(im.Auth, nodeId, string(nodeStr))
 	if err != nil {
 		return err
 	}
@@ -156,4 +171,15 @@ func (im *ImDao) stack(ctx context.Context) error {
 		return nil
 	}
 	return errors.New("sorry,stacked failed")
+}
+
+func RandStr(length int) string {
+	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	bytes := []byte(str)
+	var result []byte
+	rand.Seed(time.Now().UnixNano()+ int64(rand.Intn(100)))
+	for i := 0; i < length; i++ {
+		result = append(result, bytes[rand.Intn(len(bytes))])
+	}
+	return string(result)
 }
