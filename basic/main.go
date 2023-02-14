@@ -9,9 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/flowshield/flowshield/fullnode/pkg/confer"
-	"github.com/flowshield/flowshield/fullnode/pkg/contract"
-	"github.com/flowshield/flowshield/fullnode/pkg/logger"
+	"github.com/fiatjaf/relayer/weelink"
 	"log"
 	"time"
 
@@ -27,17 +25,12 @@ type Relay struct {
 	storage *postgresql.PostgresBackend
 }
 
-type FlowShield struct {
+type ImDao struct {
 	Client   *ethclient.Client
-	Instance *contract.Slit
+	Instance *slite.Slite
 	Auth     *bind.TransactOpts
 }
-var CS *FlowShield
-const (
-	FullNode = 1
-
-	Provider = 2
-)
+var IM *ImDao
 
 
 func (r *Relay) Name() string {
@@ -93,12 +86,6 @@ func (r *Relay) AfterSave(evt *nostr.Event) {
 
 func main() {
 	//todo 先进行质押注册
-	logger.Init(&logger.Config{
-		Level:       logger.LogLevel(),
-		Filename:    logger.LogFile(),
-		SendToFile:  logger.SendLogToFile(),
-		Development: confer.ConfigEnvIsDev(),
-	})
 	err := InitETH()
 	if err != nil {
 		log.Fatalf("init eth error: %v", err)
@@ -119,14 +106,9 @@ func main() {
 
 func InitETH() error{
 	ctx := context.Background()
-	//var cfg *confer.Web3
-	//
-	//url := cfg.ETH.URL
-	//token := cfg.Contract.Token
-	//private := cfg.PrivateKey
 
-	url := "https://weechain1.gw106.oneitfarm.com"
-	token := "0x056B1B1315304D069D54A4bEAD6eF6E39C7E55fb"
+	url := "https://goerli.infura.io/v3/0d9827d18e7242c38d0eeaea6d27745b"
+	token := "0xa8118dc9d3c35476247B4B4Ba6796d214671CbeB"
 	private := "7259120a1e1f0471d511a14fdb5c619239b267645a356a354e21732a424cc778"
 
 	client, err := ethclient.Dial(url)
@@ -137,49 +119,40 @@ func InitETH() error{
 	if err != nil {
 		return err
 	}
+
 	contractAdd := common.HexToAddress(token)
-	instance, err := contract.NewSlit(contractAdd, client)
+
+	instance,err := slite.NewSlite(contractAdd, client)
+
 	if err != nil {
+		fmt.Println("err:", err)
 		return err
 	}
 	privateKey, err := crypto.HexToECDSA(private)
 	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, chanID)
-	CS = &FlowShield{
-		Client:   client,
-		Instance: instance,
-		Auth:     auth,
+
+	IM = &ImDao{
+		Client:		client,
+		Instance: 	instance,
+		Auth:     	auth,
 	}
-	err = CS.stack(ctx)
-	if err != nil {
-		return err
-	}
-	return CS.stack(ctx)
+
+	return IM.stack(ctx)
 }
 
-func (c *FlowShield) stack(ctx context.Context) error {
-	logger.Infof("checking if stacked or not...")
-	isDeposit, err := c.Instance.IsDeposit(&bind.CallOpts{
-		From: c.Auth.From,
-	}, FullNode)
-	if err != nil {
-		return err
-	}
-	if isDeposit {
-		logger.Infof("you have stacked!")
-		return nil
-	}
-	logger.Infof("you have not stacked! trying to stack...")
+func (im *ImDao) stack(ctx context.Context) error {
+	log.Println("checking if stacked or not...")
 	// 尝试质押
-	tra, err := c.Instance.Stake(c.Auth, FullNode)
+	tra, err := im.Instance.Stake(im.Auth, "relayer1", "{'ip':'110.41.16.146','port':'22'}")
 	if err != nil {
 		return err
 	}
-	rec, err := bind.WaitMined(ctx, c.Client, tra)
+	rec, err := bind.WaitMined(ctx, im.Client, tra)
 	if err != nil {
 		return err
 	}
 	if rec.Status > 0 {
-		logger.Infof("===================stack succeed !=======================")
+		log.Println("===================stack succeed !=======================")
 		return nil
 	}
 	return errors.New("sorry,stacked failed")

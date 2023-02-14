@@ -52,7 +52,7 @@ require (
 	github.com/decred/dcrd/crypto/blake256 v1.0.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/decred/dcrd/lru v1.0.0 // indirect
-	github.com/ethereum/go-ethereum v1.10.24 // indirect
+	github.com/ethereum/go-ethereum v1.10.26 // indirect
 	github.com/flowshield/flowshield/fullnode v0.0.0-20221230015323-9d96eca8fdf1 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
