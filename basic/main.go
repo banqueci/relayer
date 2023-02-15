@@ -92,11 +92,11 @@ func (r *Relay) AfterSave(evt *nostr.Event) {
 
 func main() {
 	//todo 先进行质押注册
-	err := InitETH()
-	if err != nil {
-		log.Fatalf("init eth error: %v", err)
-		return
-	}
+	//err := InitETH()
+	//if err != nil {
+	//	log.Fatalf("init eth error: %v", err)
+	//	return
+	//}
 
 	//原代码
 	r := Relay{}
