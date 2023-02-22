@@ -92,11 +92,11 @@ func (r *Relay) AfterSave(evt *nostr.Event) {
 
 func main() {
 	//todo 先进行质押注册
-	//err := InitETH()
-	//if err != nil {
-	//	log.Fatalf("init eth error: %v", err)
-	//	return
-	//}
+	err := InitETH()
+	if err != nil {
+		log.Fatalf("init eth error: %v", err)
+		return
+	}
 
 	//原代码
 	r := Relay{}
@@ -113,8 +113,8 @@ func main() {
 func InitETH() error{
 	ctx := context.Background()
 
-	url := "https://goerli.infura.io/v3/0d9827d18e7242c38d0eeaea6d27745b"
-	token := "0xa8118dc9d3c35476247B4B4Ba6796d214671CbeB"
+	url := "https://weelinknode1c.gw002.oneitfarm.com"
+	token := "0x39506dF1EF3346FB26ea50B8e10a5cC330Aa6842"
 	private := "7259120a1e1f0471d511a14fdb5c619239b267645a356a354e21732a424cc778"
 
 	client, err := ethclient.Dial(url)
