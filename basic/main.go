@@ -37,7 +37,7 @@ type Node struct {
 	Domain 		string
 	Port 		int
 }
-
+const NodeId = "relayer1"
 
 func (r *Relay) Name() string {
 	return "BasicRelay"
@@ -91,7 +91,6 @@ func (r *Relay) AfterSave(evt *nostr.Event) {
 }
 
 func main() {
-	//todo 先进行质押注册
 	err := InitETH()
 	if err != nil {
 		log.Fatalf("init eth error: %v", err)
@@ -144,7 +143,25 @@ func InitETH() error{
 		Auth:     	auth,
 	}
 
-	return IM.stack(ctx)
+
+	//先检查是否质押过
+	keyAddr := crypto.PubkeyToAddress(privateKey.PublicKey)
+	call := &bind.CallOpts{
+		Pending: false,
+		From: keyAddr,
+		Context: ctx,
+	}
+
+	isStake, err1 := instance.IsStake(call, NodeId)
+	if err1 != nil {
+		fmt.Println("call isstake function failed:", err1)
+		return err1
+	}
+	if !isStake {
+		return IM.stack(ctx)
+	}
+
+	return nil
 }
 
 func (im *ImDao) stack(ctx context.Context) error {
@@ -156,10 +173,10 @@ func (im *ImDao) stack(ctx context.Context) error {
 		Port: 2700,
 	}
 	nodeStr, _ := json.Marshal(node)
-	nodeId := RandStr(32)
+	//nodeId := RandStr(32)
 
 	// 尝试质押
-	tra, err := im.Instance.Stake(im.Auth, nodeId, string(nodeStr))
+	tra, err := im.Instance.Stake(im.Auth, NodeId, string(nodeStr))
 	if err != nil {
 		return err
 	}
