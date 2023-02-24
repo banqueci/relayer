@@ -114,7 +114,8 @@ func InitETH() error{
 	ctx := context.Background()
 
 	url := "https://weelinknode1c.gw002.oneitfarm.com"
-	token := "0x39506dF1EF3346FB26ea50B8e10a5cC330Aa6842"
+	//token := "0x39506dF1EF3346FB26ea50B8e10a5cC330Aa6842"
+	token := "0xc09159A91F90BdF45bac1A6017C0A1c6d9E71392"
 	private := "7259120a1e1f0471d511a14fdb5c619239b267645a356a354e21732a424cc778"
 
 	client, err := ethclient.Dial(url)
